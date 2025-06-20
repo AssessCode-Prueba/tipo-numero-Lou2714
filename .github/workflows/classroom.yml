@@ -1,0 +1,80 @@
+name: Autograding Tests
+'on':
+- push
+- repository_dispatch
+permissions:
+  checks: write
+  actions: read
+  contents: read
+jobs:
+  run-autograding-tests:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Compilación y ejecución
+      id: compilacion-ejecucion
+      uses: classroom-resources/autograding-command-grader@v1
+      with:
+        test-name: Compilación y ejecución
+        setup-command: g++ -o tipo_numero tipo_numero.cpp
+        command: printf "1\n" | ./tipo_numero
+        timeout: 10
+        max-score: 2
+
+    - name: Prueba de salida - Número negativo
+      id: prueba-negativo
+      uses: classroom-resources/autograding-io-grader@v1
+      with:
+        test-name: Número negativo
+        setup-command: g++ -o tipo_numero tipo_numero.cpp
+        command: "./tipo_numero"
+        input: |- 
+          -15
+        expected-output: |-
+          Ingresa un numero entero: El numero ingresado es: Negativo
+        comparison-method: exact
+        timeout: 10
+        max-score: 3
+
+    - name: Prueba de salida - Número positivo
+      id: prueba-positivo
+      uses: classroom-resources/autograding-io-grader@v1
+      with:
+        test-name: Número positivo
+        setup-command: g++ -o tipo_numero tipo_numero.cpp
+        command: "./tipo_numero"
+        input: |-
+          42
+        expected-output: |-
+          Ingresa un numero entero: El numero ingresado es: Positivo
+        comparison-method: exact
+        timeout: 10
+        max-score: 3
+
+    - name: Prueba de salida - Cero
+      id: prueba-cero
+      uses: classroom-resources/autograding-io-grader@v1
+      with:
+        test-name: Cero
+        setup-command: g++ -o tipo_numero tipo_numero.cpp
+        command: "./tipo_numero"
+        input: |-
+          0
+        expected-output: |-
+          Ingresa un numero entero: El numero ingresado es: Cero
+        comparison-method: exact
+        timeout: 10
+        max-score: 2
+
+    - name: Autograding Reporter
+      uses: classroom-resources/autograding-grading-reporter@v1
+      env:
+        COMPILACION-EJECUCION_RESULTS: "${{steps.compilacion-ejecucion.outputs.result}}"
+        PRUEBA-NEGATIVO_RESULTS: "${{steps.prueba-negativo.outputs.result}}"
+        PRUEBA-POSITIVO_RESULTS: "${{steps.prueba-positivo.outputs.result}}"
+        PRUEBA-CERO_RESULTS: "${{steps.prueba-cero.outputs.result}}"
+      with:
+        runners: compilacion-ejecucion,prueba-negativo,prueba-positivo,prueba-cero
